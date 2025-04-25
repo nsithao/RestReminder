@@ -82,6 +82,7 @@ class RestReminderApp:
             self.config['Sound']['alert_sound'] = sound_path
             self.save_settings()
             self.alert_sound = sound_path
+
     def start_rest(self):
         self.is_work_time = False
         self.remaining_time = self.rest_duration
@@ -113,12 +114,12 @@ class RestReminderApp:
 
     def show_popup(self, message, callback):
         popup = tk.Toplevel(self.root)
-        popup.title("Reminder")
+        popup.title("Time out !!!")
         popup.attributes('-topmost', True)
         popup.geometry("300x150")
         label = tk.Label(popup, text=message, font=("Helvetica", 14))
         label.pack(pady=20)
-        button = tk.Button(popup, text="Acknowledge" if self.current_mode == 'work' else "Resume", command=lambda: self.handle_ack(popup, callback))
+        button = tk.Button(popup, text="Acknowledge" if self.current_mode == 'work' else "Resume to work", command=lambda: self.handle_ack(popup, callback))
         button.pack()
 
         if self.alert_sound:
