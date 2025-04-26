@@ -5,7 +5,7 @@ import time
 import threading
 import os
 from datetime import datetime
-from playsound import playsound
+import pygame
 
 # Config and log file paths
 CONFIG_FILE = "config.ini"
@@ -27,6 +27,8 @@ class RestReminderApp:
         self.timer_thread = None  # Background thread for countdown
         self.remaining = 0  # Seconds left in current session
         self.current_mode = None  # 'work' or 'rest'
+        pygame.mixer.init()
+        self.is_playing_sound = False
 
         # Load saved durations and sound path
         self.config = configparser.ConfigParser()
@@ -163,7 +165,7 @@ class RestReminderApp:
         popup.title("Reminder")
         popup.attributes('-topmost', True)
         tk.Label(popup, text=message, font=("Arial", 18)).pack(pady=10)
-        tk.Button(popup, text="Acknowledge", command=lambda: [popup.destroy(), callback()]).pack(pady=10)
+        tk.Button(popup, text="Acknowledge", command=lambda: [self.stop_sound(), popup.destroy(), callback()]).pack(pady=10)
 
     def play_sound(self):
         """
@@ -171,7 +173,22 @@ class RestReminderApp:
         """
         sound_file = self.config['TIMER']['sound_file']
         if sound_file and os.path.exists(sound_file):
-            threading.Thread(target=playsound, args=(sound_file,), daemon=True).start()
+            try:
+                pygame.mixer.music.load(sound_file)
+                pygame.mixer.music.play(-1)  # Play in loop until stopped
+                self.is_playing_sound = True
+            except Exception as e:
+                print(f"Error playing sound: {e}")
+
+    def stop_sound(self):
+        if self.is_playing_sound:
+            pygame.mixer.music.stop()
+            self.is_playing_sound = False
+    
+    def on_closing(self):
+        self.stop_sound()
+        pygame.mixer.quit()
+        self.root.destroy()
 
 # Entry point of the app
 if __name__ == "__main__":
