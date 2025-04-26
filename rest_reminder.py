@@ -26,9 +26,11 @@ class RestReminderApp:
         self.is_paused = False  # Flag for pause/resume
         self.timer_thread = None  # Background thread for countdown
         self.remaining = 0  # Seconds left in current session
-        self.current_mode = None  # 'work' or 'rest'
-        pygame.mixer.init()
+        self.current_mode = None  # 'work' or 'rest'        
         self.is_playing_sound = False
+        self.running = True # Flag to properly shutdown threads
+        
+        pygame.mixer.init()
 
         # Load saved durations and sound path
         self.config = configparser.ConfigParser()
@@ -55,6 +57,9 @@ class RestReminderApp:
         self.pause_button = tk.Button(root, text="Pause", command=self.toggle_pause)
         self.pause_button.pack(pady=10)
         self.pause_button.config(state="disabled")  # Hidden until timer starts
+
+        # Handle window close
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
     def load_settings(self):
         """
@@ -118,19 +123,18 @@ class RestReminderApp:
         self.is_paused = False
         self.update_timer()
         if self.timer_thread is None or not self.timer_thread.is_alive():
-            self.timer_thread = threading.Thread(target=self.run_timer)
+            self.timer_thread = threading.Thread(target=self.run_timer, daemon=True)
             self.timer_thread.start()
 
     def run_timer(self):
-        """
-        Threaded function to count down each second.
-        """
-        while self.remaining > 0:
+        """Threaded function to count down each second."""
+        while self.remaining > 0 and self.running:
             if not self.is_paused:
                 time.sleep(1)
                 self.remaining -= 1
                 self.update_timer()
-        self.on_timer_end()
+        if self.running and not self.is_paused and self.remaining <= 0:
+            self.on_timer_end()
 
     def update_timer(self):
         """
@@ -186,6 +190,8 @@ class RestReminderApp:
             self.is_playing_sound = False
     
     def on_closing(self):
+        """Handles application closing: stops everything cleanly."""
+        self.running = False  # Signal all threads to stop
         self.stop_sound()
         pygame.mixer.quit()
         self.root.destroy()
